@@ -1,1 +1,1 @@
-from opts import setopts, getopts, OptsMixin
+from opts import setopts, getopts, validateopt, OptsMixin
