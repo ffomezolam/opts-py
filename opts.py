@@ -12,7 +12,7 @@ import re
 RE_OPTVAL = re.compile(r'[0-9A-Za-z_-]+')
 RE_COMBOOPT = re.compile(r'([0-9A-Za-z_-]+)-(\d+(?:\.\d+)?)')
 
-def validateopt(src: Optional[dict|str] = None, val: Optional[Any] = None, validator: Optional[dict] = {}):
+def validateopt(key: Optional[dict|str] = None, val: Optional[Any] = None, validator: Optional[dict] = {}):
     """
     Validate that an option is permitted based on a validation dictionary passed
     as an argument.
@@ -23,23 +23,23 @@ def validateopt(src: Optional[dict|str] = None, val: Optional[Any] = None, valid
     """
     if not validator: return True
 
-    if type(src) == dict:
-        if len(src) > 1:
+    if type(key) == dict:
+        if len(key) > 1:
             valid = {}
-            for k, v in src.items():
+            for k, v in key.items():
                 valid[k] = validateopt(k, v, validator)
 
             return valid
-        elif len(src) == 1:
-            key, value = src.items()[0]
+        elif len(key) == 1:
+            key, value = key.items()[0]
             return validateopt(key, value, validator)
         else:
             return False
     else:
-        if src not in validator: return False
+        if key not in validator: return False
 
         # get valid values
-        valid = validator[src]
+        valid = validator[key]
 
         match val:
             case int():
@@ -60,15 +60,15 @@ def validateopt(src: Optional[dict|str] = None, val: Optional[Any] = None, valid
 
     return False
 
-def setopts(dest: dict, src: Optional[dict|str] = None, val: Optional[Any] = None, validator: Optional[dict] = {}):
+def setopts(optdict: dict, key: Optional[dict|str] = None, val: Optional[Any] = None, validator: Optional[dict] = {}):
     """
     Set instance options
 
     Parameters
     ----------
-    dest: dict
+    optdict: dict
         The options dictionary to be altered (e.g. the defaults)
-    src: [dict|str]
+    key: [dict|str]
         Dict of options to set or, with second parameter, the key of an option to set
     val: [str]
         With string argument to opts, the value to set to the key
@@ -78,19 +78,19 @@ def setopts(dest: dict, src: Optional[dict|str] = None, val: Optional[Any] = Non
         int(). Combo values can be specified by val-int().
     """
 
-    if not validateopt(src, val, validator): return dest
+    if not validateopt(key, val, validator): return optdict
 
-    if dest and src:
-        if type(src) == dict:
-            for k, v in src.items():
-                if k in dest: dest[k] = v
+    if optdict and key:
+        if type(key) == dict:
+            for k, v in key.items():
+                if k in optdict: optdict[k] = v
         elif val:
-            k, v = src, val
-            if k in dest: dest[k] = v
+            k, v = key, val
+            if k in optdict: optdict[k] = v
 
-    return dest
+    return optdict
 
-def getopts(opts: dict, opt: Optional[str] = None):
+def getopts(opts: dict, key: Optional[str] = None):
     """
     Get instance options
 
@@ -98,19 +98,26 @@ def getopts(opts: dict, opt: Optional[str] = None):
     ----------
     opts dict
         The options dictionary
-    opt: [str]
+    key: [str|list|tuple]
         If specified, get the value associated with this option key.
+        If key is iterable, collect all values in a dict keyed by option key.
         Otherwise, return full dict of options.
     """
 
-    if not opt: return opts
-
-    return opts.get(opt, None)
+    match key:
+        case list() | tuple():
+            r = {}
+            for k in key:
+                r[k] = getopts(opts, k)
+        case str():
+            return opts.get(key, None)
+        case _:
+            return opts
 
 @dataclass
 class Opts:
-    opts: dict = {}
-    validator: dict = {}
+    opts: dict
+    validator: dict
 
 class OptsMixin:
     """
@@ -135,15 +142,15 @@ class OptsMixin:
         ----------
         opts: [dict|str]
             dict of options to set or, with second parameter, the key of an option to set
-        val: [str]
+        val: [Any]
             with string argument to opts, the value to set to the key
         """
 
-        self._opts.opts = setopts(self._opts["opts"], opts, val, self._opts.validator)
+        self._opts.opts = setopts(self._opts.opts, opts, val, self._opts.validator)
 
         return self
 
-    def getopts(self, opt: Optional[str] = None):
+    def getopts(self, opt: Optional[str|list|tuple] = None):
         """
         Get instance options
 
@@ -154,4 +161,4 @@ class OptsMixin:
             Otherwise, return full dict of options.
         """
 
-        return getopts(self._opts["opts"], opt)
+        return getopts(self._opts.opts, opt)

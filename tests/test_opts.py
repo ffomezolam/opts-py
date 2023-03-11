@@ -79,7 +79,7 @@ class TestOptsMixin(unittest.TestCase):
         self.opts = opts.OptsMixin(testopts)
 
     def test_init(self):
-        for opt, val in self.opts._opts["opts"].items():
+        for opt, val in self.opts._opts.opts.items():
             with self.subTest(f"Should have default opt {opt}"):
                 self.assertIn(opt, testopts)
                 self.assertEqual(val, testopts[opt])
@@ -97,11 +97,11 @@ class TestOptsMixin(unittest.TestCase):
     def test_setopts(self):
         with self.subTest("Should set opt if in opts"):
             self.opts.setopts({'opt1': 'pastries'})
-            self.assertEqual(self.opts._opts['opts']['opt1'], 'pastries')
+            self.assertEqual(self.opts._opts.opts['opt1'], 'pastries')
 
         with self.subTest("Should not set opt if not in opts"):
             self.opts.setopts('opt6', 'balloons')
-            self.assertNotIn('opt6', self.opts._opts)
+            self.assertNotIn('opt6', self.opts._opts.opts)
 
 if __name__ == '__main__':
     unittest.main()
